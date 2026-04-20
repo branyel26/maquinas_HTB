@@ -106,11 +106,12 @@ Creé un archivo de prueba y confirmé que el contenido subido se renderizaba en
 
 ![Creación de probando.md](capture-20260316-081913-pm.png)
 
-![Subida inicial del markdown](capture-20260316-082048-pm.png)
-
 ![Markdown renderizado](capture-20260316-082332-pm.png)
 
+![Subida inicial del markdown](capture-20260316-082048-pm.png)
+
 ![Render de Markdown](alert-markdown-render.png)
+
 
 Con esto confirmé dos cosas: el upload de `.md` funcionaba sin fricción y el render no estaba sanitizando lo suficiente.
 
