@@ -187,8 +187,6 @@ Al decodificar la respuesta encontré una referencia a `messages.php?file=...`, 
 
 Primero falló por typo de dominio; al corregirlo, la exfiltración empezó a devolver contenido consistente.
 
-![Script corregido](alert-wachao-fixed.png)
-
 ![Exfiltración inicial](alert-exfil-request.png)
 
 ![Respuesta exfiltrada](alert-exfil-response.png)
