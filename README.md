@@ -5,7 +5,7 @@ Write-ups de Hack The Box organizados por máquina.
 ## Índice
 
 - [Alert](Alert/README.md)
-- Antique
+- [Cap](Cap/README.md)
 
 ## Estructura
 
