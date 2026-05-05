@@ -1,0 +1,264 @@
+# HTB Write-Up - Titanic
+
+**Dificultad:** Easy  
+**Sistema operativo:** Linux  
+**Servicios expuestos:** Apache en el puerto 80 y Gitea en un vHost adicional  
+**Vulnerabilidades clave:** LFI y una versión vulnerable de ImageMagick asociada a CVE-2024-41817
+
+Titanic es una máquina Linux de dificultad fácil. El recorrido combina enumeración web, abuso de una lectura arbitraria de archivos, extracción de credenciales desde Gitea y una escalada de privilegios apoyada en el procesamiento de imágenes por parte de un proceso privilegiado.
+
+## Tabla de contenido
+
+1. [Reconocimiento](#reconocimiento)
+2. [Enumeración web](#enumeración-web)
+3. [Gitea](#gitea)
+4. [Intercepción y lectura arbitraria](#intercepción-y-lectura-arbitraria)
+5. [Enumeración de Gitea](#enumeración-de-gitea)
+6. [Simulación local de Gitea](#simulación-local-de-gitea)
+7. [Credenciales y acceso inicial](#credenciales-y-acceso-inicial)
+8. [Escalada de privilegios](#escalada-de-privilegios)
+9. [Cierre](#cierre)
+
+## Reconocimiento
+
+### Conectividad inicial
+
+Primero validé la conectividad con la máquina para confirmar que estaba activa antes de empezar con la enumeración.
+
+![Prueba de conectividad contra la máquina](Screenshot 2026-05-04 at 9.13.17 PM.png)
+
+### Escaneo de puertos y servicios
+
+Después hice un escaneo de puertos y servicios. Al ver los resultados ya me pude hacer una idea de que probablemente habría una superficie web interesante, así que preferí no adelantar conclusiones y seguir enumerando con calma.
+
+![Escaneo inicial de puertos y servicios](Screenshot 2026-05-04 at 9.31.13 PM.png)
+
+![Vista ampliada del escaneo de puertos y servicios](Screenshot 2026-05-04 at 9.33.03 PM.png)
+
+### Validación más profunda
+
+Luego hice una revisión más profunda con los scripts de Nmap para ver si aparecía alguna vulnerabilidad evidente, pero no salió nada útil en esa fase.
+
+![Detección de vulnerabilidades con Nmap](Screenshot 2026-05-04 at 9.34.24 PM.png)
+
+### Resolución de hostname
+
+Como la IP resolvía a `titanic.htb`, añadí el dominio a `/etc/hosts` para trabajar el sitio directamente por nombre.
+
+![Ajuste de /etc/hosts para titanic.htb](Screenshot 2026-05-04 at 9.35.15 PM.png)
+
+![Confirmación del hostname en /etc/hosts](Screenshot 2026-05-04 at 9.38.39 PM.png)
+
+## Enumeración web
+
+### Sitio principal
+
+La página principal mostraba una web sencilla sobre el Titanic, sin nada particularmente llamativo a primera vista.
+
+![Vista principal del sitio](Screenshot 2026-05-04 at 9.40.38 PM.png)
+
+### Book Now
+
+Al revisar la sección Book Now vi que podía reservar un viaje, por decirlo de alguna forma, y al enviar mis datos la aplicación me descargó un archivo JSON con la información que acababa de ingresar.
+
+![Formulario de Book Now y descarga del JSON](Screenshot 2026-05-04 at 9.42.12 PM.png)
+
+### Enumeración adicional
+
+Seguí enumerando con feroxbuster por si encontraba algún archivo olvidado, alguna información expuesta o algo que el desarrollo hubiera dejado atrás, pero no apareció nada de valor.
+
+![Enumeración de contenido con feroxbuster](Screenshot 2026-05-04 at 10.00.46 PM.png)
+
+### Punto de interés
+
+De todo lo que apareció, `/download` fue el único endpoint que me llamó un poco más la atención.
+
+![Endpoint /download detectado durante la enumeración](Screenshot 2026-05-04 at 10.04.50 PM.png)
+
+### Búsqueda de subdominios
+
+Después seguí con la búsqueda de subdominios. Primero medí el tamaño de la respuesta con `curl` para luego filtrar mejor con `wfuzz` y ver qué aparecía.
+
+![Medición del tamaño de respuesta para subdominios](Screenshot 2026-05-04 at 10.14.40 PM.png)
+
+![Descubrimiento de dev.titanic.htb](Screenshot 2026-05-04 at 10.15.46 PM.png)
+
+## Gitea
+
+### Primer hallazgo
+
+Cuando llegué a `dev.titanic.htb` me encontré con Gitea. No lo conocía, así que primero lo busqué en Google para entender qué estaba viendo.
+
+![Portal Gitea en el subdominio dev.titanic.htb](Screenshot 2026-05-05 at 1.53.38 AM.png)
+
+![Referencia rápida sobre Gitea](Screenshot 2026-05-05 at 1.56.34 AM.png)
+
+### Pruebas iniciales
+
+En ese punto me registré para explorar qué podía publicar, buscar o enumerar dentro de la plataforma. También me pasó por la cabeza probar si podía subir algún archivo y forzar una reverse shell vía PHP, pero ese intento no me dio resultados.
+
+![Registro y exploración inicial en Gitea](Screenshot 2026-05-05 at 1.55.32 AM.png)
+
+## Intercepción y lectura arbitraria
+
+### Burp Suite
+
+Antes de seguir, abrí Burp Suite porque pensé que, si la aplicación descargaba un JSON, quizá el flujo aceptaba cambiar la ruta de descarga por otra cosa útil.
+
+![Interceptación del request y envío a Repeater](Screenshot 2026-05-05 at 10.42.34 AM.png)
+
+### Manipulación del parámetro
+
+Probé a cambiar el archivo JSON esperado por `/etc/passwd` para verificar si el parámetro permitía leer archivos arbitrarios.
+
+![Cambio del archivo solicitado a /etc/passwd](Screenshot 2026-05-05 at 10.43.26 AM.png)
+
+### Confirmación de la LFI
+
+La aplicación me devolvió el contenido de `/etc/passwd`, así que confirmé la lectura arbitraria de archivos y, de paso, identifiqué al usuario `developer`, que tenía una shell válida.
+
+![Confirmación de la LFI y detección del usuario developer](Screenshot 2026-05-05 at 10.44.08 AM.png)
+
+## Enumeración de Gitea
+
+### Repositorios del usuario developer
+
+Volví a Gitea y vi que el usuario `developer` tenía varios repositorios. Uno de ellos, `docker-config`, contenía dos aplicaciones, `mysql` y `gitea`, ambas preparadas para desplegar en Docker con sus archivos `docker-compose.yml` expuestos.
+
+![Repositorio docker-config con las aplicaciones](Screenshot 2026-05-05 at 2.31.03 AM.png)
+
+### Extracción de credenciales
+
+Al revisar esos archivos pude extraer credenciales de la base de datos, usuarios y otros datos sensibles que más adelante me ayudarían a seguir enumerando.
+
+![Credenciales extraídas desde los archivos de configuración](Screenshot 2026-05-05 at 2.31.20 AM.png)
+
+### Validación de credenciales
+
+Me cloné los repositorios y fui probando con lo que había encontrado. Incluso con acceso a la base de datos no encontré nada especialmente útil en ese momento.
+
+![Clonado de repositorios y pruebas iniciales](Screenshot 2026-05-05 at 2.33.01 AM.png)
+
+![Acceso a la base de datos sin hallazgos relevantes](Screenshot 2026-05-05 at 2.35.08 AM.png)
+
+## Simulación local de Gitea
+
+### Volumen de datos
+
+En la aplicación de Gitea vi la ruta `/home/developer/gitea/data:/data`, que es la que usa la aplicación para guardar información crítica como repositorios, configuraciones y bases internas.
+
+![Ruta de volumen usada por Gitea](Screenshot 2026-05-05 at 10.57.41 AM.png)
+
+### Ajuste del entorno local
+
+Para entender mejor cómo funcionaba la aplicación, cambié esa ruta por una local y pude guardar todo ahí para analizarlo con más comodidad.
+
+![Cambio de la ruta a un directorio local](Screenshot 2026-05-05 at 11.02.40 AM.png)
+
+### Levantamiento del contenedor
+
+Con esa modificación levanté el `docker-compose` y la aplicación quedó corriendo en `127.0.0.1:3000`.
+
+![Levantamiento local de Gitea en el puerto 3000](Screenshot 2026-05-05 at 10.58.28 AM.png)
+
+### Instalación por defecto
+
+Dejé la configuración por defecto e instalé la instancia local.
+
+![Instalación con configuración por defecto](Screenshot 2026-05-05 at 10.59.40 AM.png)
+
+### Validación de la ruta interna
+
+En la ruta que agregué, `/tmp/data`, pude ver que Gitea guardaba una base de datos. Como estaba en Docker, esto me sirvió como simulación para entender la aplicación en producción y evaluar si ese mismo dato podía leerse desde la instancia real.
+
+![Base de datos localizada en el entorno local](Screenshot 2026-05-05 at 11.03.49 AM.png)
+
+### Descarga de la base de datos
+
+Con esa hipótesis, probé a descargar la base de datos desde la aplicación real y efectivamente lo logré.
+
+![Descarga de la base de datos de Gitea](Screenshot 2026-05-05 at 11.05.08 AM.png)
+
+## Credenciales y acceso inicial
+
+### Consulta de usuarios
+
+Con `sqlite3` consulté la tabla `user`, que contenía los usuarios y sus contraseñas hasheadas.
+
+![Consulta de la tabla user en SQLite](Screenshot 2026-05-05 at 11.22.14 AM.png)
+
+### Crackeo del hash
+
+Luego crackeé el hash con `hashcat` y `rockyou`.
+
+![Crackeo del hash con hashcat](Screenshot 2026-05-05 at 11.18.05 AM.png)
+
+### Reutilización de credenciales
+
+Me enfoqué en `developer`, porque era el único usuario del sistema con una shell válida, y dejé sus credenciales a mano para seguir con la prueba.
+
+![Credenciales enfocadas en el usuario developer](Screenshot 2026-05-05 at 11.47.47 AM.png)
+
+Luego comprobé si esa misma contraseña servía para SSH.
+
+![Prueba de reutilización de credenciales por SSH](Screenshot 2026-05-05 at 11.47.57 AM.png)
+
+La clave también funcionó por SSH y así obtuve acceso al sistema como `developer`, con lo que pude capturar la primera flag, `user.txt`.
+
+![Acceso al sistema como developer y captura de user.txt](Screenshot 2026-05-05 at 11.48.31 AM.png)
+
+## Escalada de privilegios
+
+### Enumeración local
+
+Ya dentro como usuario de bajos privilegios, empecé la enumeración local en busca de una ruta directa hacia `root`. Como no había otras cuentas aprovechables para movimiento lateral, el objetivo era una escalada local.
+
+Durante la revisión de permisos encontré que la ruta `/opt/app/static/assets/images` tenía permisos `770`, lo que permitía lectura, escritura y ejecución al grupo `developer`, al que pertenecía mi usuario.
+
+![Permisos sobre el directorio de imágenes](Screenshot 2026-05-05 at 11.53.08 AM.png)
+
+### Proceso automatizado
+
+Al revisar el contenido observé varias imágenes `.jpg` y también `metadata.log`. Ese archivo llamó la atención porque parecía actualizarse de forma periódica.
+
+Más adelante encontré el script `/opt/scripts/identify_images.sh`, que procesaba esas imágenes con `magick identify` y redirigía la salida hacia `metadata.log`.
+
+![Contenido del directorio e identificación del script](Screenshot 2026-05-05 at 11.53.34 AM.png)
+
+Ese comportamiento me confirmó que había un proceso automatizado, muy probablemente ejecutado como `root`, interactuando con un directorio donde yo podía escribir.
+
+### Payload
+
+Aprovechando ese escenario, preparé un payload en C para que, al ser cargado por el proceso, creara una shell con privilegios elevados.
+
+La idea era copiar `/bin/sh` a `/tmp/sh` y asignarle el bit SUID para poder reutilizarlo después con privilegios de `root`.
+
+Compilé el payload como una librería compartida llamada `libxcb.so.1` y la coloqué dentro del directorio de imágenes.
+
+![Payload en C y biblioteca compartida preparada para la explotación](Screenshot 2026-05-05 at 11.59.55 AM.png)
+
+### Ajuste final
+
+No desarrollé el exploit desde cero; me apoyé en ayuda externa para generarlo y luego lo adapté al contexto exacto de la máquina.
+
+![Apoyo externo para ajustar el exploit](Screenshot 2026-05-05 at 12.02.20 PM.png)
+
+Una vez ubicado el payload, solo quedaba esperar a que el proceso automatizado lo ejecutara.
+
+![Ejecución del payload por el proceso automatizado](Screenshot 2026-05-05 at 12.02.54 PM.png)
+
+Al listar `/tmp` confirmé que la shell creada tenía el bit SUID activado.
+
+![Verificación de la shell con bit SUID](Screenshot 2026-05-05 at 12.03.42 PM.png)
+
+Con eso ejecuté `/tmp/sh -p`. El parámetro `-p` preserva los privilegios efectivos del binario y evita que la shell descarte el contexto SUID.
+
+![Ejecución de la shell privilegiada](Screenshot 2026-05-05 at 12.04.10 PM.png)
+
+El resultado fue una shell como `root`, cerrando la máquina y permitiendo capturar `root.txt`.
+
+![Captura final de root.txt](Screenshot 2026-05-05 at 12.04.47 PM.png)
+
+## Cierre
+
+Titanic combina una enumeración web bastante directa con una LFI que termina siendo la llave para sacar credenciales y entrar al entorno de Gitea. A partir de ahí, la escalada se apoya en un proceso privilegiado que trabaja sobre un directorio escribible, lo que abre la puerta a la explotación basada en ImageMagick y a la ejecución de código como `root`.
