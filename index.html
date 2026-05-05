@@ -443,6 +443,7 @@
           <button class="tab active" data-doc="home">Home</button>
           <button class="tab" data-doc="alert">Alert</button>
           <button class="tab" data-doc="cap">Cap</button>
+          <button class="tab" data-doc="titanic">Titanic</button>
         </nav>
       </div>
     </header>
@@ -484,6 +485,7 @@ Write-ups de Hack The Box organizados por máquina.
 
 - [Alert](#alert)
 - [Cap](#cap)
+ - [Titanic](#titanic)
 
 ## Estructura
 
@@ -1088,6 +1090,12 @@ Cap fue una máquina sencilla, pero me gustó porque deja claro que un descuido 
         folder: 'Cap',
         source: document.getElementById('tpl-cap').content.textContent.trim(),
       },
+      titanic: {
+        path: 'Titanic/README.md',
+        note: 'Titanic',
+        folder: 'Titanic',
+        source: null,
+      },
     };
 
     const root = document.getElementById('markdown-root');
@@ -1180,6 +1188,27 @@ Cap fue una máquina sencilla, pero me gustó porque deja claro que un descuido 
       pathEl.textContent = doc.path;
       noteEl.textContent = doc.note;
       clearZoom();
+
+      if (doc.source === null) {
+        root.innerHTML = '<div class="loading">Cargando Markdown...</div>';
+        fetch(doc.path).then((res) => {
+          if (!res.ok) throw new Error('Network response was not ok');
+          return res.text();
+        }).then((text) => {
+          doc.source = text;
+          const source = rewriteLocalAssets(doc.source, doc.folder);
+          marked.setOptions({ gfm: true, breaks: false });
+          root.innerHTML = marked.parse(source);
+          assignHeadingIds();
+          wireImages();
+          wireLinks(key);
+          const firstHeading = root.querySelector('h1');
+          if (firstHeading && key === 'home') firstHeading.scrollIntoView({ block: 'start' });
+        }).catch(() => {
+          root.innerHTML = '<div class="error">No se pudo cargar el documento.</div>';
+        });
+        return;
+      }
 
       const source = rewriteLocalAssets(doc.source, doc.folder);
       marked.setOptions({ gfm: true, breaks: false });
