@@ -1,11 +1,13 @@
 # Máquinas HTB
 
+
 Write-ups de Hack The Box organizados por máquina.
 
 ## Índice
 
 - [Alert](Alert/README.md)
 - [Cap](Cap/README.md)
+- [EscapeTwo](EscapeTwo/README.md)
 - [Titanic](Titanic/README.md)
 
 ## Estructura
