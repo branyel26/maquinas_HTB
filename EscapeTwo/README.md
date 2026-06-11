@@ -35,23 +35,20 @@ Como ya tenía el dominio y el host, lo añadí a `/etc/hosts` para que resolvie
 
 HTB entrega unas credenciales válidas al inicio, así que las usé para empezar a enumerar con acceso autenticado.
 
-![Credenciales iniciales](screenshot_6.png)
-
 Con NetExec confirmé que esas credenciales sí funcionaban.
 
 ![Validación con NetExec](screenshot_7.png)
 
 Luego enumeré los shares para ver si había algo útil.
 
-![Enumeración de shares](screenshot_8.png)
+![Enumeración de usuarios](screenshot_33.png)
 
 También volví a usar NetExec para enumerar usuarios con más calma.
 
-![Enumeración de usuarios](screenshot_33.png)
+![Más shares](screenshot_34.png)
 
 Con la misma sesión seguí revisando shares y encontré algo interesante para bajar.
 
-![Más shares](screenshot_34.png)
 
 Ahí apareció un archivo que valía la pena revisar con más detalle.
 
@@ -137,7 +134,7 @@ Después validé WinRM con Evil-WinRM y me apareció `Pwn3d!`.
 
 ## Enumeración del dominio
 
-Ya dentro de la máquina, subí SharpHound para mapear el AD.
+Ya dentro de la máquina, subí SharpHound para mapear el AD. También encontré la primera flag: user.txt
 
 ![Subida de SharpHound](screenshot_39.png)
 
@@ -193,11 +190,11 @@ Con eso ya quedaba claro que, si encontraba una plantilla vulnerable, podía seg
 
 ## Movimiento a ADCS
 
-Pedí ayuda a mi IA para abusar de `WriteOwner` de un usuario a otro y terminé adueñándome de `ca_svc`.
+ME ayudé con la IA para abusar de `WriteOwner` de un usuario a otro y terminé adueñándome de `ca_svc`.
 
 ![Abuso de WriteOwner](screenshot_49.png)
 
-Después importé PowerView, que sirve para enumerar y analizar el entorno de AD.
+También importé PowerView, que sirve para enumerar y analizar el entorno de AD.
 
 ![PowerView](screenshot_50.png)
 
@@ -208,6 +205,8 @@ Usé NetExec por SMB para comprobar que todo había quedado bien.
 Con Certipy encontré una plantilla de certificados vulnerable llamada `DunderMifflinAuthentication`.
 
 Al analizarla, vi que era un escenario ESC4, donde un usuario tiene permisos suficientes para modificar la configuración de la plantilla.
+
+![ESC4 Wiki de Certipy](screenshot_55.png)
 
 Eso permite ajustar sus parámetros de seguridad y convertirla en una vía para pedir certificados con otra identidad dentro del dominio.
 
