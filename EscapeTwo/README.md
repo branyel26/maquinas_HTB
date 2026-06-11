@@ -5,174 +5,242 @@
 **Autor del writeup:** estifenso  
 **Fecha:** 10 de junio de 2026
 
-EscapeTwo es una máquina Windows de dificultad fácil enfocada en el compromiso completo de un dominio. Es una de esas máquinas que te obliga a ir paso a paso, con calma, porque cada fase va abriendo la siguiente. Yo todavía estoy aprendiendo a atacar Active Directory, y justamente por eso este tipo de labs me emocionan tanto: cada enumeración, cada credencial y cada pequeño hallazgo te enseña algo nuevo que luego puedes conectar con la siguiente pieza del rompecabezas.
+EscapeTwo es una máquina Windows de dificultad fácil enfocada en el compromiso completo de un dominio. Yo todavía soy nuevo atacando Active Directory, pero justo por eso este tipo de labs me emocionan tanto: se aprende un montón en cada paso y te obliga a entender bien lo que estás viendo.
 
-La ruta fue clara, pero muy educativa. Empecé con conectividad y enumeración básica, luego encontré credenciales iniciales que me permitieron acceder a recursos compartidos. Desde ahí apareció un archivo Excel dañado que tuve que reparar para recuperar más credenciales. Con esas credenciales hice password spraying y logré acceso a MSSQL. A partir de ahí seguí enumerando el entorno y fui encontrando más piezas útiles. La parte de WinRM y ADCS la dejo para la siguiente tanda de capturas, porque todavía me la vas a ir pasando.
-
-## Tabla de contenido
-
-1. [Reconocimiento](#reconocimiento)
-2. [Enumeración inicial](#enumeración-inicial)
-3. [Credenciales y shares](#credenciales-y-shares)
-4. [Archivo Excel dañado](#archivo-excel-da%C3%B1ado)
-5. [Password spraying](#password-spraying)
-6. [MSSQL](#mssql)
-7. [Cierre](#cierre)
+La ruta fue directa, pero muy buena para practicar. Empecé con conectividad, luego saqué las credenciales iniciales, después encontré un archivo Excel dañado que me dio más información, y con eso hice password spraying para llegar a MSSQL. A partir de ahí seguí enumerando el sistema hasta encontrar más piezas útiles.
 
 ## Reconocimiento
 
-### Vista inicial de la máquina
+Primero validé que la máquina respondiera con ping.
 
-La primera captura es la foto de arranque de la máquina junto con su IP. La dejé al principio porque ubica el contexto desde el inicio y sirve como referencia rápida durante todo el write-up.
+![Ping a la máquina](1.png)
 
-![Vista inicial de EscapeTwo](5.png)
+Después hice un escaneo TCP con Nmap para empezar a ver qué servicios estaban abiertos.
 
-### Prueba de conectividad
+![Escaneo TCP inicial](2.png)
 
-Antes de tocar nada más, validé conectividad con un ping. Era la forma más rápida de confirmar que el host estaba arriba y respondiendo en red.
+En esta captura se ve mejor la salida completa del escaneo.
 
-![Prueba de conectividad con ping](1.png)
+![Salida ampliada del escaneo](3.png)
 
-### Escaneo TCP inicial
+Ya con los puertos abiertos, quedó claro que estaba frente a un entorno de Active Directory.
 
-Después lancé un escaneo TCP con Nmap para empezar a dibujar la superficie de ataque. Aquí la idea era identificar servicios visibles y ver si había algo que apuntara a una máquina de dominio desde el principio.
+![Pistas de Active Directory](4.png)
 
-![Escaneo TCP inicial con Nmap](2.png)
+La captura inicial de la máquina la dejé arriba porque ahí se ve la IP y el contexto general.
 
-### Resultados ampliados del escaneo
+![Máquina EscapeTwo](5.png)
 
-En la siguiente captura se ve mejor la salida del escaneo. Este tipo de imagen ayuda a leer con más comodidad los puertos y servicios que Nmap fue encontrando.
+Como ya tenía el dominio y el host, lo añadí a `/etc/hosts` para que resolviera bien por DNS local.
 
-![Resultados ampliados del escaneo TCP](3.png)
+![Ajuste de /etc/hosts](4.png)
 
-### Indicios de Active Directory
+## Credenciales iniciales y shares
 
-Al revisar los puertos abiertos quedó claro que estaba frente a un entorno de Active Directory. La cantidad y variedad de servicios ya daba esa pista, así que el siguiente paso era identificar bien el dominio y el host del controlador.
+HTB entrega unas credenciales válidas al inicio, así que las usé para empezar a enumerar con acceso autenticado.
 
-![Indicadores de Active Directory](4.png)
+![Credenciales iniciales](6.png)
 
-### Resolución de nombre
+Con NetExec confirmé que esas credenciales sí funcionaban.
 
-Con esa información, añadí el dominio y el nombre del equipo a `/etc/hosts` para que la IP resolviera correctamente por DNS local. Eso me evitó problemas después al trabajar con recursos y autenticación por nombre.
+![Validación con NetExec](7.png)
 
-![Ajuste de resolución DNS local](4.png)
-
-## Enumeración inicial
-
-### Credenciales iniciales desde HTB
-
-Hack The Box nos entrega unas credenciales válidas al inicio, así que las aproveché para empezar la enumeración autenticada. En una máquina de dominio, eso cambia mucho el ritmo porque ya no dependes solo de la superficie anónima.
-
-![Credenciales iniciales entregadas por HTB](6.png)
-
-### Validación inicial con NetExec
-
-Con esas credenciales probé acceso con NetExec. Primero quería confirmar que el usuario funcionaba y luego usarlo para enumerar usuarios y el entorno de forma más eficiente.
-
-![Validación de credenciales con NetExec](7.png)
-
-### Enumeración de shares
-
-Después enumeré los recursos compartidos. En este punto buscaba algo útil para seguir avanzando: archivos olvidados, documentación interna o cualquier cosa que pareciera demasiado expuesta para estar ahí.
+Luego enumeré los shares para ver si había algo útil.
 
 ![Enumeración de shares](8.png)
 
-### Enumeración de usuarios con NetExec
+También volví a usar NetExec para enumerar usuarios con más calma.
 
-Las credenciales que me dio HTB sí eran válidas, así que las usé para enumerar usuarios con NetExec y confirmar que el acceso inicial tenía recorrido real dentro del dominio.
+![Enumeración de usuarios](33.png)
 
-![Validación de credenciales con NetExec](33.png)
+Con la misma sesión seguí revisando shares y encontré algo interesante para bajar.
 
-### Enumeración adicional de shares
+![Más shares](34.png)
 
-Con esa misma sesión seguí revisando shares y salida útil de la enumeración. Esta parte fue importante porque me ayudó a encontrar el archivo que luego descargué para analizarlo con más calma.
+Ahí apareció un archivo que valía la pena revisar con más detalle.
 
-![Enumeración adicional de shares](34.png)
+![Archivo interesante](32.png)
 
-### Hallazgo interesante
+Lo guardé en mi carpeta de trabajo para irlo organizando.
 
-Entre los shares apareció algo que sí valía la pena revisar con más calma, así que lo descargué para analizarlo localmente.
-
-![Archivo interesante encontrado en un share](32.png)
-
-### Organización del hallazgo
-
-Antes de abrirlo, lo dejé ordenado en mi carpeta de trabajo para no perder el hilo. En este tipo de máquinas me gusta ir guardando cada hallazgo porque luego todo se conecta.
-
-![Archivo preparado para análisis](9.png)
+![Archivo organizado](9.png)
 
 ## Archivo Excel dañado
 
-### Identificación del formato
+El archivo resultó ser de Excel, así que revisé su estructura interna porque estos documentos suelen ir en XML.
 
-Lo que habíamos recuperado era material de Excel. Como estos archivos suelen estar construidos sobre XML comprimido, me fijé en su estructura interna para entender si podía leer algo sin depender de Excel.
+![Archivo Excel](10.png)
 
-![Archivo identificado como Excel](10.png)
+Al abrirlo vi que estaba dañado, pero todavía se podía leer parte del contenido.
 
-### Lectura del contenido
+![Contenido XML](11.png)
 
-Al abrir el contenido interno confirmé que el archivo estaba dañado, pero todavía era posible recuperar información útil leyendo su estructura XML. Eso ya era suficiente para seguir investigando.
+Después limpié todo el ruido para quedarme con lo importante.
 
-![Lectura del contenido XML del Excel](11.png)
+![Limpieza del XML](12.png)
 
-### Limpieza del ruido
+Ahí aparecieron credenciales nuevas, que fue el hallazgo más útil de esta parte.
 
-El XML venía lleno de ruido, así que copié lo importante y limpié el contenido para quedarme solo con lo relevante. Esa limpieza me ayudó a ver la información sensible con mucha más claridad.
+![Credenciales recuperadas](13.png)
 
-![Limpieza del XML del Excel](12.png)
+## Password spraying y MSSQL
 
-### Credenciales recuperadas
+Con esas credenciales empecé a cruzar usuarios y contraseñas.
 
-Ahí apareció el primer bloque grande de credenciales. Este fue uno de los puntos más importantes de la máquina, porque a partir de aquí ya no dependía solo de adivinar, sino de cruzar usuarios y contraseñas reales.
+![Cruce de credenciales](14.png)
 
-![Credenciales recuperadas del Excel](13.png)
+Oscar fue uno de los usuarios que validó correctamente.
 
-## Password Spraying
+![Usuario Oscar](14.png)
 
-### Cruce de usuarios y contraseñas
+También apareció `sa`, que me interesó bastante porque apuntaba a MSSQL.
 
-Con las credenciales sobre la mesa, probé el clásico cruce entre usuarios y contraseñas. La lógica es simple: a veces una contraseña funciona para otro usuario distinto, así que vale la pena probar combinaciones sin asumir nada.
+![Cuenta sa](15.png)
 
-![Pruebas cruzadas de credenciales](14.png)
+Con `sa` me conecté a MSSQL usando Impacket.
 
-### Usuario con acceso válido
+![Conexión a MSSQL](16.png)
 
-En ese proceso el usuario Oscar terminó autenticando correctamente. Ese resultado me confirmó que el spray iba por el camino correcto y que las credenciales recuperadas sí tenían valor real.
+Ya dentro, comprobé que `xp_cmdshell` estaba disponible.
 
-![Usuario Oscar validado](14.png)
+![xp_cmdshell](16.png)
 
-### Credencial orientada a SA
+A partir de ahí seguí enumerando el sistema desde el contexto de MSSQL.
 
-También apareció la cuenta `sa`, que en Windows suele estar asociada a administración de MSSQL. Eso me abrió una ruta muy interesante porque ya no estaba tratando solo con usuarios normales.
+![Enumeración desde MSSQL](17.png)
 
-![Credencial relacionada con sa](15.png)
+El siguiente paso fue subir `netcat` con `certutil` para enviarme una reverse shell.
 
-## MSSQL
+![Subida de netcat](36.png)
 
-### Acceso a MSSQL con Impacket
+Con eso logré conseguir acceso por la reverse shell.
 
-Con la cuenta `sa` me conecté a MSSQL usando Impacket. La parte importante aquí es que ya tenía un punto de apoyo dentro del servicio de base de datos, no solo una credencial en papel.
+![Reverse shell](42.png)
 
-![Conexión a MSSQL con Impacket](16.png)
+Después seguí enumerando y encontré un archivo de configuración, que casi siempre es buena idea revisar porque suele guardar credenciales en texto plano.
 
-### Uso de xp_cmdshell
+![Archivo de configuración](35.png)
 
-Dentro de MSSQL comprobé que `xp_cmdshell` estaba disponible. Esa función es útil porque permite ejecutar comandos del sistema operativo desde SQL Server, así que se convierte en una vía directa para hacer más enumeración.
+Ahí encontré las credenciales de un usuario llamado `sql_svc`.
 
-![xp_cmdshell habilitado en MSSQL](16.png)
+![Credenciales de sql_svc](18.png)
 
-### Enumeración adicional
+Con NetExec comprobé que esas credenciales eran válidas.
 
-A partir de ahí seguí enumerando el sistema desde el contexto de MSSQL. La idea era encontrar algo que me llevara a un usuario más privilegiado o a información interna más sensible.
+![Validación de sql_svc](18.png)
 
-![Enumeración posterior desde MSSQL](17.png)
+Probé la misma contraseña con otro usuario y también funcionó para `ryan`.
+
+![Mismo password para ryan](19.png)
+
+Después validé WinRM con Evil-WinRM y me apareció `Pwn3d!`.
+
+![WinRM con Evil-WinRM](40.png)
+
+## Enumeración del dominio
+
+Ya dentro de la máquina, subí SharpHound para mapear el AD.
+
+![Subida de SharpHound](39.png)
+
+Ejecuté `SharpHound.exe`.
+
+![Ejecución de SharpHound](38.png)
+
+Con SharpHound me descargué el `.zip` generado.
+
+![ZIP de SharpHound](21.png)
+
+Luego abrí BloodHound para revisar la data que había sacado del AD.
+
+![BloodHound abierto](22.png)
+
+Era la primera vez que usaba la herramienta, así que fui revisando con calma lo que mostraba.
+
+![Uso inicial de BloodHound](23.png)
+
+![Uso inicial de BloodHound](24.png)
+
+![Uso inicial de BloodHound](26.png)
+
+Para BloodHound tuve que cambiar la password por defecto y editar el archivo JSON en `/etc/bhapi/bhapi.json`.
+
+![Cambio de password de BloodHound](45.png)
+
+![Edición del JSON](47.png)
+
+Después cargué el `.zip` que había sacado con SharpHound.
+
+![Carga del ZIP en BloodHound](27.png)
+
+Quise ver qué más podía hacer para comprometer el sistema siendo `ryan`.
+
+![Más acciones con ryan](28.png)
+
+Ahí encontré algo relacionado con certificados.
+
+![Hallazgo de certificados](30.png)
+
+Resultó que el usuario pertenecía a un grupo que me dejaba publicar certificados.
+
+![Grupo relacionado con certificados](52.png)
+
+También vi que podía llegar al usuario `CA_SVC` abusando de `WriteOwner`.
+
+![WriteOwner sobre CA_SVC](51.png)
+
+`CA_SVC` es una cuenta de servicio de la Autoridad de Certificados, y `WriteOwner` me permitía cambiar el propietario de un objeto en AD.
+
+Con eso ya quedaba claro que, si encontraba una plantilla vulnerable, podía seguir avanzando hacia el DC.
+
+## Movimiento a ADCS
+
+Pedí ayuda a mi IA para abusar de `WriteOwner` de un usuario a otro y terminé adueñándome de `ca_svc`.
+
+![Abuso de WriteOwner](49.png)
+
+Después importé PowerView, que sirve para enumerar y analizar el entorno de AD.
+
+![PowerView](50.png)
+
+Usé NetExec por SMB para comprobar que todo había quedado bien.
+
+![Prueba con NetExec SMB](43.png)
+
+Con Certipy encontré una plantilla de certificados vulnerable llamada `DunderMifflinAuthentication`.
+
+Al analizarla, vi que era un escenario ESC4, donde un usuario tiene permisos suficientes para modificar la configuración de la plantilla.
+
+Eso permite ajustar sus parámetros de seguridad y convertirla en una vía para pedir certificados con otra identidad dentro del dominio.
+
+Si al intentar actualizar la plantilla sale error, puede tocar editar manualmente el archivo generado por Certipy.
+
+En mi caso, modifiqué la línea 23 de `msPKI-Certificate-Name-Flag`, dejé el valor en `1` y así pude habilitar que el solicitante definiera la identidad del certificado al pedirlo.
+
+![Ajuste manual de la plantilla](54.png)
+
+Aquí se puede leer la referencia completa sobre la escalada con Certipy: [Certipy Wiki - Privilege Escalation](https://github.com/ly4k/Certipy/wiki/06-%E2%80%90-Privilege-Escalation).
+
+## Compromiso del DC
+
+Con todo eso pude obtener el hash NTLM del usuario `Administrator`.
+
+![Hash del Administrator](47.png)
+
+Luego me conecté como `Administrator` vía Evil-WinRM usando ese hash.
+
+![Acceso como Administrator](48.png)
+
+Finalmente localicé la flag `root.txt`, cerrando la máquina con el control total del DC.
+
+![root.txt](53.png)
+
+La IP de la víctima cambió a mitad del write-up porque apagué la máquina después de sacar la primera flag y seguí el laboratorio más tarde.
 
 ## Cierre
 
-### Resultado final
+EscapeTwo me gustó porque mezcla enumeración, credenciales, MSSQL, BloodHound y ADCS en una sola ruta.
 
-EscapeTwo me gustó mucho porque junta varias cosas que me interesan especialmente ahora que estoy entrando más fuerte en Active Directory: credenciales iniciales, shares, un archivo dañado, password spraying y MSSQL en una sola ruta.
-
-Esta primera parte del write-up solo cubre las capturas que ya te pasé. Cuando me envíes la siguiente tanda, sigo agregando las explicaciones foto por foto sin perder el hilo.
+También me sirvió bastante porque sigo aprendiendo a atacar Active Directory, y este tipo de labs me ayudan un montón a ir entendiendo mejor cada paso.
 
 *Write-up by estifenso | HTB Profile: estifenso | 10 de junio de 2026*
