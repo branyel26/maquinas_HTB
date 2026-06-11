@@ -7,7 +7,7 @@
 
 EscapeTwo es una máquina Windows de dificultad fácil enfocada en el compromiso completo de un dominio. Yo todavía soy nuevo atacando Active Directory, pero justo por eso este tipo de labs me emocionan tanto: se aprende un montón en cada paso y te obliga a entender bien lo que estás viendo.
 
-La ruta fue directa, pero muy buena para practicar. Empecé con conectividad, luego saqué las credenciales iniciales, después encontré un archivo Excel dañado que me dio más información, y con eso hice password spraying para llegar a MSSQL. A partir de ahí seguí enumerando el sistema hasta encontrar más piezas útiles.
+La ruta fue directa, pero muy buena para practicar. Empecé con conectividad, luego saqué las credenciales iniciales, después encontré un archivo Excel que abrí por XML, y con eso hice password spraying para llegar a MSSQL. A partir de ahí seguí enumerando el sistema hasta encontrar más piezas útiles.
 
 ## Reconocimiento
 
@@ -65,13 +65,13 @@ Lo guardé en mi carpeta de trabajo para irlo organizando.
 
 ![Archivo organizado](screenshot_9.png)
 
-## Archivo Excel dañado
+## Archivo Excel en XML
 
-El archivo resultó ser de Excel, así que revisé su estructura interna porque estos documentos suelen ir en XML.
+El archivo resultó ser de Excel, pero como no tenía una app para abrirlo, revisé su estructura interna por XML, que es como normalmente están escritos.
 
 ![Archivo Excel](screenshot_10.png)
 
-Al abrirlo vi que estaba dañado, pero todavía se podía leer parte del contenido.
+Al abrirlo por XML pude leer parte del contenido sin problema.
 
 ![Contenido XML](screenshot_11.png)
 
