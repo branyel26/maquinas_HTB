@@ -7,7 +7,9 @@
 
 EscapeTwo es una máquina Windows de dificultad fácil enfocada en el compromiso completo de un dominio. Yo todavía soy nuevo atacando Active Directory, pero justo por eso este tipo de labs me emocionan tanto: se aprende un montón en cada paso y te obliga a entender bien lo que estás viendo.
 
-La ruta fue directa, pero muy buena para practicar. Empecé con conectividad, luego saqué las credenciales iniciales, después encontré un archivo Excel que abrí por XML, y con eso hice password spraying para llegar a MSSQL. A partir de ahí seguí enumerando el sistema hasta encontrar más piezas útiles.
+Como principiante, encontré esta máquina muy útil para aprender. Tuve que analizar un archivo Excel para obtener información relevante, realizar password spraying, enumerar Active Directory y comprender el funcionamiento de ADCS antes de conseguir acceso como Administrator.
+
+![Máquina EscapeTwo](screenshot_5.png)
 
 ## Reconocimiento
 
@@ -19,17 +21,11 @@ Después hice un escaneo TCP con Nmap para empezar a ver qué servicios estaban 
 
 ![Escaneo TCP inicial](screenshot_2.png)
 
-En esta captura se ve mejor la salida completa del escaneo.
-
 ![Salida ampliada del escaneo](screenshot_3.png)
 
 Ya con los puertos abiertos, quedó claro que estaba frente a un entorno de Active Directory.
 
 ![Pistas de Active Directory](screenshot_4.png)
-
-La captura inicial de la máquina la dejé arriba porque ahí se ve la IP y el contexto general.
-
-![Máquina EscapeTwo](screenshot_5.png)
 
 Como ya tenía el dominio y el host, lo añadí a `/etc/hosts` para que resolviera bien por DNS local.
 
@@ -147,7 +143,7 @@ Ejecuté `SharpHound.exe`.
 
 ![Ejecución de SharpHound](screenshot_38.png)
 
-Con SharpHound me descargué el `.zip` generado.
+SharpHound me arrojó el `.zip` generado, y yo me lo descargué.
 
 ![ZIP de SharpHound](screenshot_21.png)
 
