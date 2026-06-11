@@ -5,7 +5,7 @@
 **Autor del writeup:** estifenso  
 **Fecha:** 10 de junio de 2026
 
-EscapeTwo es una máquina Windows de dificultad fácil enfocada en el compromiso completo de un dominio. Yo todavía soy nuevo atacando Active Directory, pero justo por eso este tipo de labs me emocionan tanto: se aprende un montón en cada paso y te obliga a entender bien lo que estás viendo.
+EscapeTwo es una máquina Windows de dificultad fácil enfocada en el compromiso completo de un dominio. Yo todavía soy nuevo atacando Active Directory, pero justo por eso este tipo de labs me emocionan tanto: se aprende mucho en cada paso y te obliga a entender bien lo que estás viendo.
 
 Como principiante, encontré esta máquina muy útil para aprender. Tuve que analizar un archivo Excel para obtener información relevante, realizar password spraying, enumerar Active Directory y comprender el funcionamiento de ADCS antes de conseguir acceso como Administrator.
 
@@ -72,6 +72,8 @@ Al abrirlo por XML pude leer parte del contenido sin problema.
 ![Contenido XML](screenshot_11.png)
 
 Después limpié todo el ruido para quedarme con lo importante.
+
+Como era un laboratorio y quería agilizar, limpié esa parte con ayuda de la IA; en un pentesting real no se debe hacer así. e,e
 
 ![Limpieza del XML](screenshot_12.png)
 
@@ -143,7 +145,7 @@ Ejecuté `SharpHound.exe`.
 
 ![Ejecución de SharpHound](screenshot_38.png)
 
-SharpHound me arrojó el `.zip` generado, y yo me lo descargué.
+SharpHound me arrojó el `.zip` generado, y me lo descargué.
 
 ![ZIP de SharpHound](screenshot_21.png)
 
@@ -163,7 +165,7 @@ Para BloodHound tuve que cambiar la password por defecto y editar el archivo JSO
 
 ![Cambio de password de BloodHound](screenshot_45.png)
 
-![Edición del JSON](screenshot_47.png)
+![Edición del JSON](screenshot_46.png)
 
 Después cargué el `.zip` que había sacado con SharpHound.
 
@@ -237,6 +239,6 @@ La IP de la víctima cambió a mitad del write-up porque apagué la máquina des
 
 EscapeTwo me gustó porque mezcla enumeración, credenciales, MSSQL, BloodHound y ADCS en una sola ruta.
 
-También me sirvió bastante porque sigo aprendiendo a atacar Active Directory, y este tipo de labs me ayudan un montón a ir entendiendo mejor cada paso.
+También me sirvió bastante porque sigo aprendiendo a atacar Active Directory, y este tipo de labs me ayudan mucho a ir entendiendo mejor cada paso.
 
 *Write-up by estifenso | HTB Profile: estifenso | 10 de junio de 2026*
