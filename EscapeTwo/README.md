@@ -25,8 +25,6 @@ Después hice un escaneo TCP con Nmap para empezar a ver qué servicios estaban 
 
 Ya con los puertos abiertos, quedó claro que estaba frente a un entorno de Active Directory.
 
-![Pistas de Active Directory](screenshot_4.png)
-
 Como ya tenía el dominio y el host, lo añadí a `/etc/hosts` para que resolviera bien por DNS local.
 
 ![Ajuste de /etc/hosts](screenshot_4.png)
@@ -94,8 +92,6 @@ También apareció `sa`, que me interesó bastante porque apuntaba a MSSQL.
 
 Con `sa` me conecté a MSSQL usando Impacket.
 
-![Conexión a MSSQL](screenshot_16.png)
-
 Ya dentro, comprobé que `xp_cmdshell` estaba disponible.
 
 ![xp_cmdshell](screenshot_16.png)
@@ -117,8 +113,6 @@ Después seguí enumerando y encontré un archivo de configuración, que casi si
 ![Archivo de configuración](screenshot_35.png)
 
 Ahí encontré las credenciales de un usuario llamado `sql_svc`.
-
-![Credenciales de sql_svc](screenshot_18.png)
 
 Con NetExec comprobé que esas credenciales eran válidas.
 
